@@ -30,7 +30,7 @@ Describe 'Basic Connectivity Tests' {
     Context 'Windows Connectivity' {
         BeforeAll {
             $Name = "win-webserver"
-            #kubectl apply -f webserver.yml
+            kubectl apply -f https://raw.githubusercontent.com/anuddeeph1/windows-k8s/main/webserver.yaml
             kubectl scale deployment $Name --replicas=4
             WaitForDeploymentCompletion -DeploymentName $Name
             $workloadContainers = GetContainers -DeploymentName $Name
@@ -41,8 +41,7 @@ Describe 'Basic Connectivity Tests' {
             $nodePort = (kubectl get services -o json | ConvertFrom-Json).items[1].spec.ports.nodePort
         }
         AfterAll {
-            kubectl delete deploy win-webserver --force
-            kubectl delete svc win-webserver --force
+            kubectl delete -f https://raw.githubusercontent.com/anuddeeph1/windows-k8s/main/webserver.yaml
         }
     
         It 'should have more than 1 local container' {
