@@ -1,0 +1,424 @@
+Install-Module -Name OpenSSHUtils -RequiredVersion 1.0.0.1 -SkipPublisherCheck -Scope AllUsers -Force
+Get-Module -ListAvailable | ? Name -like '*OpenSSHUtils*'
+
+Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'
+    Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+    Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+    Start-Service sshd
+    Set-Service -Name sshd -StartupType 'Automatic'
+
+New-NetFirewallRule -Name 'OpenSSH-Server-In-TCP' -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+==========================================================================================================================================================================
+==========RDP================================================================================================================================================================================
+Link: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_remote_troubleshooting?view=powershell-7.3
+
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -value 0
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+Enable-PSRemoting -Force
+Get-NetFirewallRule -Name 'WINRM*' | Select-Object Name
+Enable-PSRemoting -SkipNetworkProfileCheck -Force
+Set-NetFirewallRule -Name 'WINRM-HTTP-In-TCP' -RemoteAddress Any
+Set-NetFirewallRule -Name "WINRM-HTTP-In-TCP-PUBLIC" -RemoteAddress Any
+
+Enable-PSRemoting -Force
+Get-PSSessionConfiguration
+$session = New-PSSession -ComputerName localhost -ConfigurationName PowerShell.7
+Invoke-Command -Session $session -ScriptBlock { $PSVersionTable }
+
+
+=======================================================================================================================================================================================================================
+Configure Windows firewall settings
+==========================================================================================================================================================================
+#Disable firewall in windows
+netsh advfirewall set allprofiles state off
+netsh advfirewall show all
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+Get-NetFirewallProfile | Format-Table Name, Enabled
+==========================================================================================================================================================================
+
+
+==========================================================================================================================================================================
+Install GIT: 
+Links: 
+https://www.pugetsystems.com/labs/hpc/Note-Setup-Git-for-PowerShell-on-Windows-10-1653/
+https://git-scm.com/book/en/v2/Appendix-A%3A-Git-in-Other-Environments-Git-in-PowerShell
+==========================================================================================================================================================================
+Get-ExecutionPolicy
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned -Force
+Get-ExecutionPolicy
+Install-Module posh-git -Scope CurrentUser -Force
+Install-Module PowerShellGet -Force -SkipPublisherCheck
+Import-Module posh-git
+Add-PoshGitToProfile -AllHosts​​​​​​​
+
+or
+choco install git
+Restart-Computer
+==========================================================================================================================================================================
+Install Choco
+https://jcutrer.com/windows/install-chocolatey-choco-windows10
+https://docs.chocolatey.org/en-us/choco/setup
+
+Set-ExecutionPolicy Bypass -Scope Process -Force; `
+  iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
+  choco upgrade chocolatey
+  choco search hugo
+  choco install hugo
+  choco list --local-only
+  choco search Git -ea
+  choco search Git -ev
+
+choco install chrome – Google Chrome Browser
+choco install git – Git cli Client for Windows
+choco install github – Official GUI-Based Git Client
+choco install 7zip – Archive utility to compress/uncompress zip, tar, gz, bzip and other formats.
+choco install SublimeText3 – An execellent markdown & source code editor.
+choco install vlc – An open-source media player
+choco install putty – An open-source SSH client
+choco install keepass – An open-source Password Manager
+choco install greenshot – My favorite screenshot utility for Windows
+choco install imagemagick.app – A suite of cli tools for working with and converting images
+
+==========================================================================================================================================================================
+# To remove dir
+CMD:
+rd /s C:\etc\kubernetes\pki\
+rd /s <foldername>
+Remove-Item -Recurse -Force <foldername>
+==========================================================================================================================================================================
+Install HostNetwork
+==========================================================================================================================================================================
+
+Install-Module -Name HNS 
+Install-Module -Name HNS   -AllowClobber
+==========================================================================================================================================================================
+
+==========================================================================================================================================================================
+
+
+
+PrepareNode from sig-windows
+==========================================================================================================================================================================
+Start-BitsTransfer  https://raw.githubusercontent.com/kubernetes-sigs/sig-windows-tools/master/kubeadm/scripts/PrepareNode.ps1
+.\PrepareNode.ps1 -KubernetesVersion v1.21.5
+
+rm -r -Force C:\etc\kubernetes\pki
+dir env:
+==========================================================================================================================================================================
+Ansible
+========================================================================================
+ ========================Windows node=======================
+1) pip3 install --upgrade pip
+2) yum install python3-pip -y
+ 313  localedef -c -f UTF-8 -i en_US en_US.UTF-8
+ 314  export LC_ALL=en_US.UTF-8
+ 315  yum install pip3
+ 316  pip3 install --upgrade --ignore-installed pip setuptools
+ 317  pip install ansible
+ 318  pip install pywinrm==0.3.0
+ 319  history
+ ===============================================================
+ ==========================================================================================================================================================================
+
+ Get-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion" | Select ProductName, ReleaseId, InstallationType, CurrentMajorVersionNumber,CurrentMinorVersionNumber,CurrentBuild
+ Get-ItemProperty -Path "HKLM:\Software\Microsoft\Windows NT\CurrentVersion" | Select ProductName, ReleaseId, InstallationType, CurrentMajorVersionNumber,CurrentMinorVersionNumber,CurrentBuild
+ Get-ComputerInfo | Select WindowsProductName, WindowsVersion, WindowsInstallationType, OsServerLevel, OsVersion, OsHardwareAbstractionLayer
+
+ ==========================================================================================================================================================================
+ Troubleshooting:
+1) Ensure Kubernetes is installed and running correctly
+
+ Start-BitsTransfer https://raw.githubusercontent.com/kubernetes-sigs/windows-testing/188e78fe46b38601c9b7155c5e59a9a7199d9e39/scripts/Debug-WindowsNode.ps1
+
+ In script:  docker version are:  "18.09.1", "18.09.2", "18.09.3", "18.09.4"
+ Current docker version: 20.10.9
+
+ ps | findstr "kube flanneld"
+
+ 2) Use a script to validate basic cluster connectivity
+ Start-BitsTransfer https://raw.githubusercontent.com/microsoft/SDN/master/Kubernetes/windows/test/ValidateKubernetesHelper.psm1
+ Start-BitsTransfer https://raw.githubusercontent.com/microsoft/SDN/master/Kubernetes/windows/test/ValidateKubernetes.Pester.tests.ps1
+
+ .\ValidateKubernetes.Pester.tests.ps1
+ ==========================================================================================================================================================================
+
+ Start-BitsTransfer https://raw.githubusercontent.com/microsoft/SDN/master/Kubernetes/windows/debug/collectlogs.ps1
+
+ ==========================================================================================================================================================================
+
+HNS:
+hnsdiag list all
+Get-HnsEndpoint | ? ID -Like "caa8ae36-7cc1-4a24-af75-b6241759c7c0"
+vfpctrl /port caa8ae36-7cc1-4a24-af75-b6241759c7c0 /list-layer
+
+==========================================================================================================================================================================
+https://learn.microsoft.com/en-us/virtualization/windowscontainers/container-networking/network-drivers-topologies
+
+
+https://support.microsoft.com/en-gb/topic/march-12-2019-kb4489899-os-build-17763-379-2a91a5c5-f351-f181-5501-510308a4030f
+
+TO check MTU
+netsh interface ipv4 show subinterfaces
+ifconfig| grep -i MTU
+
+
+
+
+
+
+
+
+
+
+==========================================================================================================================================================================
+Wins package
+
+Start-BitsTransfer https://github.com/rancher/wins/releases/download/v0.4.11/wins.exe
+Start-Process -Wait -FilePath C:\wins.exe -Argument "/silent" -PassThru
+ ==========================================================================================================================================================================
+
+1) yum install epel-release
+2) yum -y update
+3) yum install python-pip 
+4) yum -y install ansible
+5) pip3 install --upgrade pip
+6) pip3 install --upgrade setuptools
+7) pip3 install pywinrm==0.3.0
+8) yum install python-pip3 gcc python36-devel krb5-devel krb5-workstation openssl-devel rust cargo
+9) pip3 install setuptools-rust
+10) pip3 install wheel
+11) pip3 install pywinrm
+
+
+
+# yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+# yum list available > /tmp/available_pkgs.txt
+# cat /tmp/available_pkgs.txt  |egrep python3
+# yum -y install python36u
+# python3.6 --version
+# yum -y install python36u-pip
+# yum -y install python36u-devel
+# python3.6 -V
+# mkdir ~/environments
+# cd ~/environments/
+# python3.6 -m venv my_env
+# source ~/environments/my_env/bin/activate
+# python -V
+
+Following changes were made. :
+NetConnectionProfile was made to Private
+Get-NetFirewallProfile - Tried toggling the variables for incoming traffic
+Curl request from Linux Container to Windows Still fails
+Current Observations :
+Outside -> Windows Node IP via node port is OK
+Linux Pod -> Windows Node IP via node port is OK
+Windows Container IP -> Linux Pod IP is OK
+Linux Pod IP -> Windows Container POD IP is failing
+
+
+
+history 186 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+187 Get-NetFirewallProfile | Format-Table Name, Enabled
+188 clear
+189 cd ~
+190 dir
+191 cd \
+192 dir
+193 get-context k
+194 get-netipinterface
+195 get-netipaddress
+196 cd ~
+197 dir
+198 copy kubeconfig \k\.
+199 cd ]\k
+200 cd \k
+201 dir
+202 kubectl get pods -A
+203 cd ~
+204 dir
+205 cd .kube
+206 dir
+207 copy ..\kubeconfig .\config
+208 dir
+209 cd \k
+210 kubectl get nodes
+211 kubectl get pods -A
+212 netstat -rn
+213 kubectl get nodes -o wide
+214 c
+215 cd ~
+216 dir
+217 copy *.PS1 C:\k\
+218 cd |k
+219 dir
+220 get-service docker
+221 strop-service docker
+222 stop-service docker
+223 get-service docker
+224 delete-service docker
+225 .\Install-Containerd.ps1
+226 .\Install-Containerd.ps1
+227 get-service containerd
+228 notepad .\Install-Containerd.ps1
+229 .\Install-Containerd.ps1
+230 get-service containerd
+231 .\PrepareNode.ps1
+232 .\PrepareNode.ps1
+233 cd \k
+234 dir
+235 del *.exe
+236 dir
+237 del *.exe
+238 remove-item, .\kubelet.exe
+239 remove-item, .\kubelet.exe
+240 remove-item, .\kubelet.exe -f
+241 dir
+242 .\Windows-Setup-V1-21.ps1
+243 .\Windows-Setup-V1-21.ps1 -reset
+244 .\Windows-Setup-V1-21.ps1 -reset
+245 cd ~
+246 .\PrepareNode.ps1
+247 cd \k
+248 dir
+249 .\PrepareNode.ps1
+250 rm *.exe
+251 dir
+252 rm *.conf
+253 dir
+254 rm .\sourceVip.json
+255 rm .\sourceVipRequest.json
+256 rm Kubernetes
+257 dir
+258 rm sni
+259 rm cni
+260 dir
+261 .\PrepareNode.ps1
+262 .\PrepareNode.ps1
+263 rm C:\var\lib\etc*
+264 .\PrepareNode.ps1
+265 rm C:\var\lib\etc\*
+266 cd cv
+267 cd c:\var\lib
+268 dir
+269 rm cni
+270 rm .\kubelet\
+271 dir
+272 rm .\PrepareNode.ps1
+273 dir
+274 cd kubelet
+275 dir
+276 cd pods
+277 dir
+278 rm *
+279 cd ..
+280 cd ..
+281 dir
+282 rm Dockershim
+283 cd |k
+284 cd \k
+285 .\PrepareNode.ps1
+286 get-service kubelet
+287 get-service kube-proxy
+288 get-service flanneld
+289 noetpad kubelet
+290 notepad .\PrepareNode.ps1
+291 Remove-NetfirewallRule kubelet
+292 dir
+293 notepad Windows-Setup-V1-21.ps1
+294 notepad kubelet.yaml
+
+
+
+==========================================================================================================================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: win-webserver
+  labels:
+    app: win-webserver
+spec:
+  ports:
+    # the port that this service should serve on
+  - port: 80
+    targetPort: 80
+  selector:
+    app: win-webserver
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: win-webserver
+  name: win-webserver
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: win-webserver
+      name: win-webserver
+    spec:
+      containers:
+      - name: windowswebserver
+        image: mcr.microsoft.com/windows/servercore:ltsc2019
+        command:
+        - powershell.exe
+        - -command
+        - "<#code used from https://gist.github.com/wagnerandrade/5424431#> ; $$listener = New-Object System.Net.HttpListener ; $$listener.Prefixes.Add('http://*:80/') ; $$listener.Start() ; $$callerCounts = @{} ; Write-Host('Listening at http://*:80/') ; while ($$listener.IsListening) { ;$$context = $$listener.GetContext() ;$$requestUrl = $$context.Request.Url ;$$clientIP = $$context.Request.RemoteEndPoint.Address ;$$response = $$context.Response ;Write-Host '' ;Write-Host('> {0}' -f $$requestUrl) ;  ;$$count = 1 ;$$k=$$callerCounts.Get_Item($$clientIP) ;if ($$k -ne $$null) { $$count += $$k } ;$$callerCounts.Set_Item($$clientIP, $$count) ;$$ip=(Get-NetAdapter | Get-NetIpAddress); $$header='<html><body><H1>Windows Container Web Server</H1>' ;$$callerCountsString='' ;$$callerCounts.Keys | % { $$callerCountsString+='<p>IP {0} callerCount {1} ' -f $$ip[1].IPAddress,$$callerCounts.Item($$_) } ;$$footer='</body></html>' ;$$content='{0}{1}{2}' -f $$header,$$callerCountsString,$$footer ;Write-Output $$content ;$$buffer = [System.Text.Encoding]::UTF8.GetBytes($$content) ;$$response.ContentLength64 = $$buffer.Length ;$$response.OutputStream.Write($$buffer, 0, $$buffer.Length) ;$$response.Close() ;$$responseStatus = $$response.StatusCode ;Write-Host('< {0}' -f $$responseStatus)  } ; "
+      nodeSelector:
+        beta.kubernetes.io/os: windows
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: win-webserver
+  name: win-webserver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: win-webserver
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: win-webserver
+    spec:
+      containers:
+      - image: mcr.microsoft.com/windows/servercore:ltsc2019
+        name: windowswebserver
+        command:
+        - powershell.exe
+        - -command
+        - "<#code used from https://gist.github.com/wagnerandrade/5424431#> ; $$listener = New-Object System.Net.HttpListener ; $$listener.Prefixes.Add('http://*:80/') ; $$listener.Start() ; $$callerCounts = @{} ; Write-Host('Listening at http://*:80/') ; while ($$listener.IsListening) { ;$$context = $$listener.GetContext() ;$$requestUrl = $$context.Request.Url ;$$clientIP = $$context.Request.RemoteEndPoint.Address ;$$response = $$context.Response ;Write-Host '' ;Write-Host('> {0}' -f $$requestUrl) ;  ;$$count = 1 ;$$k=$$callerCounts.Get_Item($$clientIP) ;if ($$k -ne $$null) { $$count += $$k } ;$$callerCounts.Set_Item($$clientIP, $$count) ;$$ip=(Get-NetAdapter | Get-NetIpAddress); $$header='<html><body><H1>Windows Container Web Server</H1>' ;$$callerCountsString='' ;$$callerCounts.Keys | % { $$callerCountsString+='<p>IP {0} callerCount {1} ' -f $$ip[1].IPAddress,$$callerCounts.Item($$_) } ;$$footer='</body></html>' ;$$content='{0}{1}{2}' -f $$header,$$callerCountsString,$$footer ;Write-Output $$content ;$$buffer = [System.Text.Encoding]::UTF8.GetBytes($$content) ;$$response.ContentLength64 = $$buffer.Length ;$$response.OutputStream.Write($$buffer, 0, $$buffer.Length) ;$$response.Close() ;$$responseStatus = $$response.StatusCode ;Write-Host('< {0}' -f $$responseStatus)  } ; "
+      nodeSelector:
+        beta.kubernetes.io/os: windows
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: win-webserver
+  labels:
+    app: win-webserver
+spec:
+  ports:
+    # the port that this service should serve on
+  - port: 80
+    targetPort: 80
+  selector:
+    app: win-webserver
+  type: NodePort
+  ==========================================================================================================================================================================
+
+
