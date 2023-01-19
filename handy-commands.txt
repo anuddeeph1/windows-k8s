@@ -35,7 +35,10 @@ netsh advfirewall show all
 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 Get-NetFirewallProfile | Format-Table Name, Enabled
 ==========================================================================================================================================================================
+Set firewall to Private
 
+Set-NetConnectionProfile -InterfaceIndex 13 -NetworkCategory private
+Get-NetConnectionProfile
 
 ==========================================================================================================================================================================
 Install GIT: 
@@ -52,6 +55,9 @@ Import-Module posh-git
 Add-PoshGitToProfile -AllHosts​​​​​​​
 
 or
+============Install Git==================
+Set-ExecutionPolicy Bypass -Scope Process -Force; `
+  iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 choco install git
 Restart-Computer
 ==========================================================================================================================================================================
@@ -80,11 +86,14 @@ choco install keepass – An open-source Password Manager
 choco install greenshot – My favorite screenshot utility for Windows
 choco install imagemagick.app – A suite of cli tools for working with and converting images
 
+choco install git.install
+$env:PATH=$env:PATH+";C:\Program Files\Git\bin"
 ==========================================================================================================================================================================
 # To remove dir
 CMD:
+rd /s C:\var\lib\kubelet\etc\kubernetes\
+rd /s C:\var\lib\kubelet\etc\
 rd /s C:\etc\kubernetes\pki\
-rd /s <foldername>
 Remove-Item -Recurse -Force <foldername>
 ==========================================================================================================================================================================
 Install HostNetwork
@@ -163,11 +172,8 @@ netsh interface ipv4 show subinterfaces
 ifconfig| grep -i MTU
 
 
-
-
-
-
-
+netsh interface ipv4 show interfaces
+netsh interface ipv4 set subinterface "8" mtu=1400 store=persistent
 
 
 
@@ -218,7 +224,7 @@ Linux Pod IP -> Windows Container POD IP is failing
 
 
 
-history 186 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 187 Get-NetFirewallProfile | Format-Table Name, Enabled
 188 clear
 189 cd ~
@@ -332,46 +338,6 @@ history 186 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
 ==========================================================================================================================================================================
 
-apiVersion: v1
-kind: Service
-metadata:
-  name: win-webserver
-  labels:
-    app: win-webserver
-spec:
-  ports:
-    # the port that this service should serve on
-  - port: 80
-    targetPort: 80
-  selector:
-    app: win-webserver
-  type: NodePort
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: win-webserver
-  name: win-webserver
-spec:
-  replicas: 2
-  template:
-    metadata:
-      labels:
-        app: win-webserver
-      name: win-webserver
-    spec:
-      containers:
-      - name: windowswebserver
-        image: mcr.microsoft.com/windows/servercore:ltsc2019
-        command:
-        - powershell.exe
-        - -command
-        - "<#code used from https://gist.github.com/wagnerandrade/5424431#> ; $$listener = New-Object System.Net.HttpListener ; $$listener.Prefixes.Add('http://*:80/') ; $$listener.Start() ; $$callerCounts = @{} ; Write-Host('Listening at http://*:80/') ; while ($$listener.IsListening) { ;$$context = $$listener.GetContext() ;$$requestUrl = $$context.Request.Url ;$$clientIP = $$context.Request.RemoteEndPoint.Address ;$$response = $$context.Response ;Write-Host '' ;Write-Host('> {0}' -f $$requestUrl) ;  ;$$count = 1 ;$$k=$$callerCounts.Get_Item($$clientIP) ;if ($$k -ne $$null) { $$count += $$k } ;$$callerCounts.Set_Item($$clientIP, $$count) ;$$ip=(Get-NetAdapter | Get-NetIpAddress); $$header='<html><body><H1>Windows Container Web Server</H1>' ;$$callerCountsString='' ;$$callerCounts.Keys | % { $$callerCountsString+='<p>IP {0} callerCount {1} ' -f $$ip[1].IPAddress,$$callerCounts.Item($$_) } ;$$footer='</body></html>' ;$$content='{0}{1}{2}' -f $$header,$$callerCountsString,$$footer ;Write-Output $$content ;$$buffer = [System.Text.Encoding]::UTF8.GetBytes($$content) ;$$response.ContentLength64 = $$buffer.Length ;$$response.OutputStream.Write($$buffer, 0, $$buffer.Length) ;$$response.Close() ;$$responseStatus = $$response.StatusCode ;Write-Host('< {0}' -f $$responseStatus)  } ; "
-      nodeSelector:
-        beta.kubernetes.io/os: windows
-
-
 
 
 apiVersion: apps/v1
@@ -421,4 +387,97 @@ spec:
   type: NodePort
   ==========================================================================================================================================================================
 
+  Add-WindowsCapability -Name Browser.InternetExplorer~~~~0.0.11.0 -Online -Source c:\sources\sxs\
+  dism /online /Enable-Feature /FeatureName:Internet-Explorer-Optional-amd64
 
+
+  MTU 1422 and 1421
+
+  - /etc/kube-flannel/cni-conf.json
+  - /etc/cni/net.d/10-flannel.conflist
+  /opt/cni/bin
+  /etc/cni/net.d
+
+  cat /run/flannel/subnet.env
+
+  https://www.henrydu.com/2020/11/16/k3s-cni-flannel/
+
+
+
+  ifconfig eth0 mtu 8500 up 
+
+  sudo ip link set mtu 1600 eth0
+  vim /etc/sysconfig/network-scripts/ifcfg-ens192
+  MTU=1400
+
+ reboot
+
+vim /etc/docker/daemon.json
+{
+  "mtu": 1400,
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "5m",
+    "max-file": "2"
+  }
+}
+
+command: [ "/opt/bin/flanneld", "--ip-masq", "--kube-subnet-mgr", "--mtu=1400" ]
+
+        tcpdump -i flannel.4096 host 10.244.13.8
+
+
+        C:\k\logs\kube-proxy> cat .\kube-proxy.exe.ERROR
+Log file created at: 2023/01/18 01:27:52
+Running on machine: WIN-9CAO5RUTPHL
+Binary: Built with gc go1.16.12 for windows/amd64
+Log line format: [IWEF]mmdd hh:mm:ss.uuuuuu threadid file:line] msg
+F0118 01:27:52.402032    5504 server.go:494] unable to create proxier: source-vip flag not set
+
+
+"--source-vip=$SourceVip"
+
+
+
+
+Hi all, i have created the windows cluster.
+created netshoot pod on linux(master) node
+create windows webserver pod on windows(worker) node and exposed with nodeport
+Outside (chrome) ->  Node IP via node port is working fine (windows webserver pod)
+(netshoot) Linux Pod -> Windows Node IP via node port is working fine (windows webserver pod) 
+(webserver) Windows Pod -> Linux Pod IP is working fine  (netshoot)
+(netshoot) Linux Pod IP -> Windows Container POD IP is failing (webserver); but ping is working with pod ip.
+
+
+
+==========================================================================================================================================================================
+PrepareNode from sig-windows
+==========================================================================================================================================================================
+
+Start-BitsTransfer https://raw.githubusercontent.com/kubernetes-sigs/sig-windows-tools/master/kubeadm/scripts/Install-Containerd.ps1
+Start-BitsTransfer  https://raw.githubusercontent.com/kubernetes-sigs/sig-windows-tools/master/kubeadm/scripts/PrepareNode.ps1
+
+
+Set firewall to Private
+=======================
+Set-NetConnectionProfile -InterfaceIndex 13 -NetworkCategory private
+Get-NetConnectionProfile
+
+Install Choco and git
+=====================
+Set-ExecutionPolicy Bypass -Scope Process -Force; `
+  iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+choco install git
+Restart-Computer
+
+.\PrepareNode.ps1 -KubernetesVersion v1.22.5
+
+
+
+Cleanup:
+========
+CMD:
+rd /s C:\var\lib\kubelet\etc\kubernetes\
+rd /s C:\var\lib\kubelet\etc\
+rd /s C:\etc\kubernetes\pki\
